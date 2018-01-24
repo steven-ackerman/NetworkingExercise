@@ -15,15 +15,21 @@
  */
 package com.example.android.sunshine;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 import java.io.IOException;
 import java.net.URL;
+import java.util.prefs.Preferences;
+
+
+import com.example.android.sunshine.data.SunshinePreferences;
 import com.example.android.sunshine.utilities.NetworkUtils;
+import com.example.android.sunshine.utilities.OpenWeatherJsonUtils;
 
-
+import org.json.JSONException;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -46,46 +52,63 @@ public class MainActivity extends AppCompatActivity {
         //Done TODO (4) Delete the dummy weather data. You will be getting REAL data from the Internet in this lesson.
         //Done TODO (3) Delete the for loop that populates the TextView with dummy data
         //Done: Method is not completed. TODO (9) Call loadWeatherData to perform the network request to get the weather
-        LoadWeatherData();
+        loadWeatherData();
     }
 
-        // TODO (8) Create a method that will get the user's preferred location and execute your new AsyncTask and call it loadWeatherData
-        //MY COMMENTS: I created a final and set it to my own location. This doesn't seem to be what I need.
-        //Seems like I am being asked to create a new Object the my NetworkRequests class that extends AsynchTask.
-        //I am not sure what exactly my LoadWeatherData method is supposed to do. Please elaborate.
+    //Done TODO (8) Create a method that will get the user's preferred location and execute your new AsyncTask and call it loadWeatherData
+    public void loadWeatherData() {
+        String preferredLocation = SunshinePreferences.getPreferredWeatherLocation(this);
+        new FetchWeatherTask().execute(preferredLocation);
+    }
+        //Done TODO (5) Create a class that extends AsyncTas to perform network requests
 
-        public void LoadWeatherData(){
-            String location = PREFERRED_LOCATION;
+        public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
-
-        }
-    // TODO (5) Create a class that extends AsyncTask to perform network requests
-    //This is my best guess. What exact network requests is this class supposed to perform?
-    public class NetworkRequests extends AsyncTask<URL, Void, String>{
-
-            // TODO (6) Override the doInBackground method to perform your network requests
+            //Done TODO (6) Override the doInBackground method to perform your network requests
             @Override
-            protected String doInBackground(URL... params) {
-                URL searchUrl = params[0];
-                String networkRequests = null;
+            protected String[] doInBackground(String... params) {
+                if (params.length == 0) {
+                    return null;
+                }
+                String location = params[0];
+                URL weatherRequestUrl = NetworkUtils.buildUrl(location);
+
                 try {
-                    networkRequests = NetworkUtils.getResponseFromHttpUrl(searchUrl);
+                    String jsonWeatherResponse = NetworkUtils.getResponseFromHttpUrl(weatherRequestUrl);
+                    String[] simpleJsonWeatherData = OpenWeatherJsonUtils
+                            .getSimpleWeatherStringsFromJson(MainActivity.this, jsonWeatherResponse);
+                    return simpleJsonWeatherData;
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    return null;
                 }
-                return networkRequests;
+
+                return null;
             }
-        // TODO (7) Override the onPostExecute method to display the results of the network request
-        //I asuume we do not want our 'networkRequests' to be null or be a blank space.
-        //I assume also that we are trying to set the text to display in the mWeatherTextView.
-        //Is this correct. Please give me more instruction. Thank you.
-        @Override
-        protected void onPostExecute(String networkRequests) {
-            if (networkRequests != null && !networkRequests.equals("")) {
-                mWeatherTextView.setText(networkRequests);
+            //Completed: TODO (7) Override the onPostExecute method to display the results of the network request
+            @Override
+            protected void onPostExecute(String[] weatherData) {
+//                if (networkRequests != null & !networkRequests.equals("")) {
+//                    mWeatherTextView.setText(networkRequests);
+                if (weatherData != null) {
+                /*
+                 * Iterate through the array and append the Strings to the TextView. The reason why we add
+                 * the "\n\n\n" after the String is to give visual separation between each String in the
+                 * TextView. Later, we'll learn about a better way to display lists of data.
+                 */
+                    for (String weatherString : weatherData) {
+                        mWeatherTextView.append((weatherString) + "\n\n\n");
+                    }
+
+                }
             }
+
+
         }
-    }
+
 
 
 }
